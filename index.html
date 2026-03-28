@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POMO</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #000000;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #e8ff47;
+}
+
+/* MODES */
+.modes {
+  display: flex;
+  gap: 28px;
+}
+
+.mode-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.mode-btn.active { color: #e8ff47; }
+.mode-btn:not(.active):hover { color: #666; }
+
+/* RING */
+.ring-wrap {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  cursor: pointer;
+}
+
+.ring-wrap:hover .center { opacity: 0.85; }
+
+svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.track {
+  fill: none;
+  stroke: #222222;
+  stroke-width: 3;
+}
+
+.progress {
+  fill: none;
+  stroke: #e8ff47;
+  stroke-width: 3;
+  stroke-linecap: butt;
+  stroke-dasharray: 722;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: opacity 0.2s;
+}
+
+.edit-hint {
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #333;
+  margin-top: 8px;
+  transition: color 0.2s;
+}
+
+.ring-wrap:hover .edit-hint { color: #666; }
+
+.time {
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #e8ff47;
+  font-variant-numeric: tabular-nums;
+}
+
+.mode-tag {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #444;
+}
+
+/* CONTROLS */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.btn-small {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 0;
+}
+
+.btn-small:hover { color: #e8ff47; }
+
+.btn-main {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid #e8ff47;
+  background: none;
+  color: #e8ff47;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-main:hover { background: #e8ff47; color: #000; }
+
+/* DOTS */
+.dots { display: flex; gap: 8px; }
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #222;
+  transition: background 0.3s;
+}
+
+.dot.done { background: #e8ff47; }
+
+/* ── MODAL ── */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.overlay.open { display: flex; }
+
+.modal {
+  background: #000;
+  border: 1px solid #2a2a2a;
+  padding: 36px 32px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modal-title {
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #444;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #444;
+}
+
+.field input {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #2a2a2a;
+  color: #e8ff47;
+  padding: 6px 0;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+.field input:focus { border-color: #e8ff47; }
+
+.modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.modal-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.modal-btn.cancel { color: #333; }
+.modal-btn.cancel:hover { color: #666; }
+.modal-btn.save { color: #e8ff47; }
+.modal-btn.save:hover { opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div class="modes">
+  <button class="mode-btn active" data-mode="work" onclick="setMode('work')">Focus</button>
+  <button class="mode-btn" data-mode="break" onclick="setMode('break')">Short Break</button>
+  <button class="mode-btn" data-mode="long" onclick="setMode('long')">Long Break</button>
+</div>
+
+<div class="ring-wrap" onclick="openEdit()">
+  <svg viewBox="0 0 260 260">
+    <circle class="track" cx="130" cy="130" r="115"/>
+    <circle class="progress" id="ring" cx="130" cy="130" r="115"/>
+  </svg>
+  <div class="center">
+    <div class="time" id="time">25:00</div>
+    <div class="mode-tag" id="modeTag">Focus</div>
+    <div class="edit-hint">click to edit</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-small" onclick="reset()">Reset</button>
+  <button class="btn-main" id="mainBtn" onclick="toggle()">Start</button>
+  <button class="btn-small" onclick="skip()">Skip</button>
+</div>
+
+<div class="dots" id="dots">
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-title">Edit Timer</div>
+
+    <div class="modal-row">
+      <div class="field">
+        <label>Focus (min)</label>
+        <input type="number" id="inWork" min="1" max="99" value="25">
+      </div>
+      <div class="field">
+        <label>Short (min)</label>
+        <input type="number" id="inBreak" min="1" max="99" value="5">
+      </div>
+      <div class="field">
+        <label>Long (min)</label>
+        <input type="number" id="inLong" min="1" max="99" value="15">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Focus Label</label>
+      <input type="text" id="inWorkLabel" maxlength="20" value="Focus">
+    </div>
+
+    <div class="field">
+      <label>Short Break Label</label>
+      <input type="text" id="inBreakLabel" maxlength="20" value="Short Break">
+    </div>
+
+    <div class="field">
+      <label>Long Break Label</label>
+      <input type="text" id="inLongLabel" maxlength="20" value="Long Break">
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="importJSON()">Import</button>
+      <button class="modal-btn cancel" onclick="exportJSON()">Export</button>
+      <button class="modal-btn cancel" onclick="closeEdit()">Cancel</button>
+      <button class="modal-btn save" onclick="saveEdit()">Save</button>
+    </div>
+    <div id="importMsg" style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#444;text-align:right;min-height:12px;"></div>
+  </div>
+</div>
+<input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFile(event)">
+
+<script>
+const MODES = {
+  work:  { label: 'Focus',       duration: 25 * 60 },
+  break: { label: 'Short Break', duration: 5 * 60  },
+  long:  { label: 'Long Break',  duration: 15 * 60 },
+};
+
+const C = 2 * Math.PI * 115;
+
+let mode = 'work', timeLeft = 1500, total = 1500;
+let running = false, timer = null, sessions = 0;
+
+const $time = document.getElementById('time');
+const $ring = document.getElementById('ring');
+const $btn  = document.getElementById('mainBtn');
+const $tag  = document.getElementById('modeTag');
+
+$ring.style.strokeDasharray = C;
+
+function fmt(s) {
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+function render() {
+  const p = timeLeft / total;
+  $time.textContent = fmt(timeLeft);
+  $ring.style.strokeDashoffset = C * (1 - p);
+  document.title = fmt(timeLeft) + ' — POMO';
+}
+
+function setMode(m) {
+  stop();
+  mode = m;
+  timeLeft = total = MODES[m].duration;
+  $tag.textContent = MODES[m].label;
+  $btn.textContent = 'Start';
+  document.querySelectorAll('.mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === m));
+  render();
+}
+
+function stop() {
+  running = false;
+  clearInterval(timer);
+}
+
+function toggle() {
+  if (running) {
+    stop();
+    $btn.textContent = 'Start';
+  } else {
+    running = true;
+    $btn.textContent = 'Pause';
+    timer = setInterval(() => {
+      if (--timeLeft <= 0) { stop(); done(); }
+      else render();
+    }, 1000);
+  }
+}
+
+function reset() {
+  stop();
+  timeLeft = total;
+  $btn.textContent = 'Start';
+  render();
+}
+
+function skip() { stop(); done(); }
+
+function done() {
+  beep();
+  if (mode === 'work') {
+    sessions = Math.min(sessions + 1, 4);
+    updateDots();
+    if (sessions >= 4) { sessions = 0; updateDots(); setMode('long'); }
+    else setMode('break');
+  } else {
+    setMode('work');
+  }
+}
+
+function updateDots() {
+  document.querySelectorAll('.dot').forEach((d, i) =>
+    d.classList.toggle('done', i < sessions));
+}
+
+// ── EDIT MODAL ──
+function openEdit() {
+  document.getElementById('inWork').value  = Math.round(MODES.work.duration / 60);
+  document.getElementById('inBreak').value = Math.round(MODES.break.duration / 60);
+  document.getElementById('inLong').value  = Math.round(MODES.long.duration / 60);
+  document.getElementById('inWorkLabel').value  = MODES.work.label;
+  document.getElementById('inBreakLabel').value = MODES.break.label;
+  document.getElementById('inLongLabel').value  = MODES.long.label;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeEdit() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeEdit();
+}
+
+function saveEdit() {
+  const w = parseInt(document.getElementById('inWork').value)  || 25;
+  const b = parseInt(document.getElementById('inBreak').value) || 5;
+  const l = parseInt(document.getElementById('inLong').value)  || 15;
+  const wl = document.getElementById('inWorkLabel').value.trim()  || 'Focus';
+  const bl = document.getElementById('inBreakLabel').value.trim() || 'Short Break';
+  const ll = document.getElementById('inLongLabel').value.trim()  || 'Long Break';
+
+  MODES.work.duration  = w * 60;
+  MODES.break.duration = b * 60;
+  MODES.long.duration  = l * 60;
+  MODES.work.label  = wl;
+  MODES.break.label = bl;
+  MODES.long.label  = ll;
+
+  // update mode button labels
+  document.querySelectorAll('.mode-btn')[0].textContent = wl;
+  document.querySelectorAll('.mode-btn')[1].textContent = bl;
+  document.querySelectorAll('.mode-btn')[2].textContent = ll;
+
+  closeEdit();
+  setMode(mode); // restart current mode with new duration
+}
+
+// ── JSON EXPORT / IMPORT ──
+function exportJSON() {
+  const data = {
+    version: 1,
+    modes: {
+      work:  { label: MODES.work.label,  minutes: Math.round(MODES.work.duration / 60) },
+      break: { label: MODES.break.label, minutes: Math.round(MODES.break.duration / 60) },
+      long:  { label: MODES.long.label,  minutes: Math.round(MODES.long.duration / 60) },
+    }
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pomo-config.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON() {
+  document.getElementById('fileInput').click();
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const m = data.modes;
+      if (!m || !m.work || !m.break || !m.long) throw new Error('Invalid format');
+
+      document.getElementById('inWork').value       = m.work.minutes  || 25;
+      document.getElementById('inBreak').value      = m.break.minutes || 5;
+      document.getElementById('inLong').value       = m.long.minutes  || 15;
+      document.getElementById('inWorkLabel').value  = m.work.label    || 'Focus';
+      document.getElementById('inBreakLabel').value = m.break.label   || 'Short Break';
+      document.getElementById('inLongLabel').value  = m.long.label    || 'Long Break';
+
+      showMsg('Loaded ✓');
+    } catch {
+      showMsg('Invalid file');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function showMsg(txt) {
+  const el = document.getElementById('importMsg');
+  el.textContent = txt;
+  setTimeout(() => { el.textContent = ''; }, 2000);
+}
+
+function beep() {
+  try {
+    const ctx = new AudioContext();
+    [0, 0.22, 0.44].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 740; o.type = 'sine';
+      g.gain.setValueAtTime(0.2, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.2);
+    });
+  } catch(e) {}
+}
+
+render();
+</script>
+</body>
+</html>
